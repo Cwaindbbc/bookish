@@ -9,6 +9,7 @@ class Book {
     dueDate,
     borrowerId
   ) {
+    console.log(bookId);
     this.bookId = bookId;
     this.title = title;
     this.author = author;
