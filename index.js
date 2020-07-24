@@ -1,22 +1,18 @@
 const express = require("express");
-const pgp = require("pg-promise")();
 const Book = require("./book.js");
 const credentials = require("./credentials");
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
+const passportConfig = require("./passportConfiguration");
+const db = require("./repository.js");
+
+passportConfig();
+
 const app = express();
-const bodyParser = require("body-parser");
 const port = 3000;
-console.log(credentials);
-const cn = {
-  host: "localhost",
-  port: 5432,
-  database: "bookish",
-  user: credentials.user,
-  password: credentials.password,
-  max: 30,
-};
-const db = pgp(cn);
+
 app.use(express.json());
+app.use(passport.initialize());
 
 app.post("/login", (req, res) => {
   const username = req.body.username;
@@ -38,39 +34,34 @@ app.post("/login", (req, res) => {
     });
 });
 
-const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, credentials.privateKey);
-  } catch (e) {
-    console.log("e:", e);
-    return null;
-  }
-};
+app.get(
+  "/books",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    db.any("SELECT * FROM book")
+      .then(function (data) {
+        console.log(data);
 
-app.get("/books", (req, res) => {
-  db.any("SELECT * FROM book")
-    .then(function (data) {
-      console.log(data);
+        const listOfBooks = data.map((book) => {
+          return new Book(
+            book.book_id,
+            book.title,
+            book.author,
+            book.isbn,
+            book.copies_owned,
+            book.barcode,
+            book.due_date,
+            book.borrower_id
+          );
+        });
 
-      const listOfBooks = data.map((book) => {
-        return new Book(
-          book.book_id,
-          book.title,
-          book.author,
-          book.isbn,
-          book.copies_owned,
-          book.barcode,
-          book.due_date,
-          book.borrower_id
-        );
+        res.send(listOfBooks);
+        console.log(listOfBooks);
+      })
+      .catch(function (error) {
+        console.log(error);
       });
-
-      res.send(listOfBooks);
-      console.log(listOfBooks);
-    })
-    .catch(function (error) {
-      console.log(error);
-    });
-});
+  }
+);
 
 app.listen(port);
