@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const app = express();
 const bodyParser = require("body-parser");
 const port = 3000;
-
+console.log(credentials);
 const cn = {
   host: "localhost",
   port: 5432,
@@ -15,7 +15,7 @@ const cn = {
   password: credentials.password,
   max: 30,
 };
-
+const db = pgp(cn);
 app.use(express.json());
 
 app.post("/login", (req, res) => {
@@ -30,21 +30,13 @@ app.post("/login", (req, res) => {
     }
   )
     .then(function (data) {
-      res.send(data);
-      var login = data;
-
-      const listOfMembers = login.map((member) => {
-        return { username: member.username, password: member.password };
-      });
+      token = jwt.sign(username, credentials.privateKey);
+      res.send(token);
     })
     .catch(function (error) {
       console.log(error);
     });
 });
-
-const createToken = () => {
-  return (token = jwt.sign(response.body, credentials.privateKey));
-};
 
 const verifyToken = (token) => {
   try {
@@ -54,8 +46,6 @@ const verifyToken = (token) => {
     return null;
   }
 };
-
-const db = pgp(cn);
 
 app.get("/books", (req, res) => {
   db.any("SELECT * FROM book")
